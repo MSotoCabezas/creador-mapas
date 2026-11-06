@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Creador de mapas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.16.0/dist/leaflet-geoman.css">
+<style>
+:root{
+  --paper:#EEF2F0; --surface:#FFFFFF; --ink:#18232B; --muted:#56676E; --line:#C8D3CF;
+  --accent:#0E6E78; --accent-ink:#FFFFFF; --accent-soft:#D5E8E8; --danger:#A3341C;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141A1D; --surface:#1C2428; --ink:#E3E9E6; --muted:#93A3A8; --line:#2E3A3F;
+    --accent:#4FB3BC; --accent-ink:#0B2225; --accent-soft:#1E3A3E; --danger:#E0795F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141A1D; --surface:#1C2428; --ink:#E3E9E6; --muted:#93A3A8; --line:#2E3A3F;
+  --accent:#4FB3BC; --accent-ink:#0B2225; --accent-soft:#1E3A3E; --danger:#E0795F;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0}
+body{font-family:'Barlow','Segoe UI',system-ui,sans-serif;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.45}
+.app{display:grid;grid-template-columns:340px 1fr;height:100%}
+.panel{overflow-y:auto;border-right:1px solid var(--line);background:var(--paper);padding-bottom:28px}
+.brand{padding:22px 20px 16px;border-bottom:1px solid var(--line);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='110' viewBox='0 0 340 110'%3E%3Cg fill='none' stroke='%230E6E78' stroke-opacity='.18' stroke-width='1'%3E%3Cpath d='M-10 22 C60 -3 120 47 190 20 S300 2 350 28'/%3E%3Cpath d='M-10 40 C60 15 120 65 190 38 S300 20 350 46'/%3E%3Cpath d='M-10 58 C60 33 120 83 190 56 S300 38 350 64'/%3E%3Cpath d='M-10 76 C60 51 120 101 190 74 S300 56 350 82'/%3E%3Cpath d='M-10 94 C60 69 120 119 190 92 S300 74 350 100'/%3E%3C/g%3E%3C/svg%3E") right top / cover no-repeat}
+h1{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:600;font-size:30px;line-height:1.1;margin:0}
+.brand p{margin:6px 0 0;color:var(--muted);max-width:30ch}
+section{padding:16px 20px 18px;border-bottom:1px solid var(--line)}
+h2{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:20px;font-weight:600;margin:0 0 8px;display:flex;align-items:center;gap:9px}
+h2 .n{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);color:var(--accent);display:inline-grid;place-items:center;font-size:13px;font-family:'Barlow',sans-serif;font-weight:600}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+label.check{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px;margin:6px 0}
+input[type=text],input[type=number],select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit}
+input[type=color]{width:38px;height:32px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;gap:8px;align-items:center}
+.row>.grow{flex:1}
+button{font:inherit;font-weight:500;padding:7px 12px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button:disabled{opacity:.6;cursor:progress}
+button.link{border:none;background:none;padding:2px 5px;color:var(--muted);font-size:13px}
+button.link:hover{color:var(--accent)}
+button.link.del:hover{color:var(--danger)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.hint{font-size:13px;color:var(--muted);margin:8px 0 0}
+.list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.item{display:grid;grid-template-columns:30px 1fr auto;gap:4px 6px;align-items:center;padding:6px 6px 6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.item input[type=color]{width:26px;height:26px;padding:0;border:none;background:none}
+.item input[type=text]{padding:4px 6px;border-color:transparent;background:transparent}
+.item input[type=text]:hover,.item input[type=text]:focus{border-color:var(--line)}
+.item .meta{grid-column:2 / 4;font-size:12.5px;color:var(--muted);padding-left:6px}
+.results{list-style:none;margin:6px 0 0;padding:0}
+.results button{width:100%;text-align:left;white-space:normal;border:none;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:6px 2px;font-size:13.5px}
+.legend-prev{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.legend-prev span{display:inline-flex;align-items:center;gap:5px}
+.legend-prev i{width:12px;height:12px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.35)}
+main{position:relative;min-height:0}
+#map{position:absolute;inset:0;background:#dfe5e3}
+.drop{position:absolute;inset:12px;border:3px dashed var(--accent);border-radius:10px;background:rgba(14,110,120,.16);z-index:1500;display:none;place-items:center;font-weight:600;font-size:18px;color:#0b3d42;pointer-events:none}
+.drop.on{display:grid}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 14px;border-radius:6px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:min(90vw,520px);z-index:3000;font-size:14px}
+#toast.show{opacity:1}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){#toast{transition:none}}
+@media (max-width:760px){
+  html,body{height:auto}
+  .app{grid-template-columns:1fr;height:auto}
+  main{order:-1;height:58vh}
+  .panel{border-right:none;overflow:visible}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel">
+    <div class="brand">
+      <h1>Creador de mapas</h1>
+      <p>Dibuja zonas, superpone tus puntos GPS y exporta el shapefile y la figura.</p>
+    </div>
+
+    <section>
+      <h2><span class="n">1</span>Ubicación y mapa base</h2>
+      <label for="q">Buscar lugar o pegar coordenadas</label>
+      <div class="row">
+        <input class="grow" id="q" type="text" placeholder="Loncoche, Chile  o  -39.368, -72.634">
+        <button id="btnSearch">Ir</button>
+      </div>
+      <ul class="results" id="results"></ul>
+      <label for="basemap">Mapa base</label>
+      <select id="basemap"></select>
+    </section>
+
+    <section>
+      <h2><span class="n">2</span>Zonas</h2>
+      <div class="btns">
+        <button class="primary" id="btnDrawPoly">Dibujar polígono</button>
+        <button id="btnDrawRect">Dibujar rectángulo</button>
+      </div>
+      <p class="hint" id="polyEmpty">Haz clic en el mapa para cada vértice y vuelve a hacer clic en el primero para cerrar. También puedes arrastrar un .geojson o un .zip con shapefile.</p>
+      <ul class="list" id="polyList"></ul>
+      <label for="crs">Sistema de coordenadas del shapefile</label>
+      <select id="crs">
+        <option value="32718">UTM 18S (EPSG:32718)</option>
+        <option value="32719">UTM 19S (EPSG:32719)</option>
+        <option value="4326">WGS84 geográficas (EPSG:4326)</option>
+      </select>
+      <label for="shpName">Nombre del archivo</label>
+      <input id="shpName" type="text" value="zonas">
+      <div class="btns">
+        <button id="btnShp">Descargar shapefile (.zip)</button>
+        <button id="btnGeojson">Descargar GeoJSON</button>
+        <button class="link del" id="btnClearPolys">Borrar todas</button>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="n">3</span>Puntos GPS</h2>
+      <div class="btns">
+        <button class="primary" id="btnLoadPts">Cargar archivo</button>
+        <button id="btnFitPts">Ajustar vista a los puntos</button>
+      </div>
+      <input id="filePts" type="file" accept=".gpx,.csv,.txt,.geojson,.json,.zip" multiple hidden>
+      <p class="hint" id="ptsEmpty">Acepta .gpx, .csv (con columnas lat y lon en grados decimales) y .geojson.</p>
+      <ul class="list" id="ptsList"></ul>
+      <label for="colorCol">Colorear puntos por</label>
+      <select id="colorCol"><option value="">Color fijo</option></select>
+      <div id="fixedWrap">
+        <label for="fixedColor">Color</label>
+        <input id="fixedColor" type="color" value="#E4572E">
+      </div>
+      <div id="breaksWrap" hidden>
+        <label for="breaks">Cortes de las clases (separados por punto y coma)</label>
+        <div class="row">
+          <input class="grow" id="breaks" type="text">
+          <button id="btnAutoBreaks" title="Calcular cortes desde los datos">Auto</button>
+        </div>
+        <div class="legend-prev" id="legendPrev"></div>
+      </div>
+      <div class="row">
+        <div class="grow">
+          <label for="ptSize">Tamaño del punto</label>
+          <input id="ptSize" type="number" min="1" max="15" step="0.5" value="4">
+        </div>
+        <div class="grow">
+          <label for="maxShow">Máx. puntos a dibujar</label>
+          <input id="maxShow" type="number" min="1000" step="1000" value="30000">
+        </div>
+      </div>
+      <p class="hint" id="thinNote"></p>
+    </section>
+
+    <section>
+      <h2><span class="n">4</span>Figura</h2>
+      <label for="figTitle">Título</label>
+      <input id="figTitle" type="text" placeholder="Zonas urbanas y recorridos de monitoreo">
+      <label for="figSub">Subtítulo (opcional)</label>
+      <input id="figSub" type="text" placeholder="Campaña de invierno">
+      <label for="legTitle">Título de la leyenda de valores</label>
+      <input id="legTitle" type="text" placeholder="PM2.5 (µg/m³)">
+      <label class="check"><input type="checkbox" id="optScale" checked>Barra de escala</label>
+      <label class="check"><input type="checkbox" id="optNorth" checked>Flecha de norte</label>
+      <label class="check"><input type="checkbox" id="optLegend" checked>Leyenda</label>
+      <label for="figScale">Resolución</label>
+      <select id="figScale">
+        <option value="1">Pantalla (1×)</option>
+        <option value="2" selected>Alta (2×)</option>
+        <option value="3">Impresión (3×)</option>
+      </select>
+      <div class="btns"><button class="primary" id="btnPng">Descargar figura PNG</button></div>
+      <p class="hint">La figura usa el encuadre actual del mapa. Ajusta el zoom y el tamaño de la ventana antes de descargar.</p>
+    </section>
+  </aside>
+
+  <main id="main">
+    <div id="map"></div>
+    <div class="drop" id="drop">Suelta el archivo para cargarlo</div>
+  </main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@geoman-io/leaflet-geoman-free@2.16.0/dist/leaflet-geoman.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/shpjs@3.6.3/dist/shp.min.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const STORE_KEY = 'creador-mapas:v1';
+const INK = '#1F2A33';
+let ready = false;
+
+// ---------- utilidades ----------
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),4200); }
+function toNum(v){ if(v===null||v===undefined||v==='') return NaN; if(typeof v==='number') return v; return parseFloat(String(v).trim().replace(',','.')); }
+function fmtNum(v){ return Number(v).toLocaleString('es-CL',{maximumFractionDigits:2}); }
+function slug(s){ return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w\-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,60); }
+function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000); }
+function hexRgb(h){ return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16)); }
+function rgba(h,a){ const [r,g,b]=hexRgb(h); return `rgba(${r},${g},${b},${a})`; }
+
+// ---------- mapa ----------
+const BASEMAPS = {
+  osm:   { name:'OpenStreetMap', url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', native:19, attr:'© OpenStreetMap contributors' },
+  sat:   { name:'Satélite (Esri)', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', native:18, attr:'Imágenes: Esri, Maxar, Earthstar Geographics' },
+  claro: { name:'Claro (CARTO)', url:'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', native:19, attr:'© OpenStreetMap contributors © CARTO' },
+  calles:{ name:'Calles (Esri)', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', native:18, attr:'Esri, HERE, Garmin, © OpenStreetMap contributors' }
+};
+Object.entries(BASEMAPS).forEach(([k,b])=>{ const o=document.createElement('option'); o.value=k; o.textContent=b.name; $('#basemap').appendChild(o); });
+
+const map = L.map('map',{ maxZoom:20, zoomControl:true });
+L.control.scale({ imperial:false, position:'bottomleft' }).addTo(map);
+map.createPane('puntos');
+map.getPane('puntos').style.zIndex = 350;
+map.getPane('puntos').style.pointerEvents = 'none';
+const ptsRenderer = L.canvas({ pane:'puntos', padding:0.3 });
+const ptsGroup = L.layerGroup().addTo(map);
+
+let currentBase='osm', baseLayer=null;
+function setBasemap(key){
+  if(!BASEMAPS[key]) key='osm';
+  if(baseLayer) map.removeLayer(baseLayer);
+  const b=BASEMAPS[key];
+  baseLayer=L.tileLayer(b.url,{ maxNativeZoom:b.native, maxZoom:20, attribution:b.attr, crossOrigin:true }).addTo(map);
+  currentBase=key; $('#basemap').value=key; save();
+}
+$('#basemap').onchange=e=>setBasemap(e.target.value);
+
+// ---------- búsqueda ----------
+async function doSearch(){
+  const q=$('#q').value.trim(); const ul=$('#results'); ul.innerHTML='';
+  if(!q) return;
+  const m=q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if(m){ map.setView([+m[1],+m[2]], Math.max(map.getZoom(),15)); return; }
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=es&q='+encodeURIComponent(q));
+    const js=await r.json();
+    if(!js.length){ toast('No encontré ese lugar. Prueba con la comuna y "Chile", o pega coordenadas.'); return; }
+    js.forEach(res=>{
+      const li=document.createElement('li'); const b=document.createElement('button');
+      b.textContent=res.display_name;
+      b.onclick=()=>{ const bb=res.boundingbox.map(Number); map.fitBounds([[bb[0],bb[2]],[bb[1],bb[3]]]); ul.innerHTML=''; };
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }catch(e){ toast('La búsqueda no respondió. Revisa tu conexión o pega coordenadas.'); }
+}
+$('#btnSearch').onclick=doSearch;
+$('#q').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(); });
+
+// ---------- zonas (polígonos) ----------
+const PALETTE=['#0E6E78','#C2410C','#6D28D9','#15803D','#B91C1C','#1D4ED8','#A16207'];
+const polyGroup=L.featureGroup().addTo(map);
+let polySeq=0;
+
+map.pm.setLang('es');
+map.pm.addControls({ position:'topleft', drawMarker:false, drawCircleMarker:false, drawPolyline:false, drawCircle:false, drawText:false,
+  drawRectangle:true, drawPolygon:true, editMode:true, dragMode:true, cutPolygon:false, removalMode:true, rotateMode:false });
+map.pm.setGlobalOptions({ snappable:true, pathOptions:{ color:'#0E6E78', weight:2.5, fillOpacity:0.15 } });
+
+function registerPolygon(layer,name,color){
+  polySeq++;
+  layer._meta={ id:polySeq, name:name||`Zona ${polySeq}`, color:color||PALETTE[(polySeq-1)%PALETTE.length] };
+  layer.setStyle({ color:layer._meta.color, fillColor:layer._meta.color, weight:2.5, fillOpacity:0.15 });
+  polyGroup.addLayer(layer);
+  layer.on('pm:edit pm:dragend', ()=>{ updateCounts(); save(); });
+  return layer;
+}
+map.on('pm:create',e=>{
+  if(e.shape==='Polygon'||e.shape==='Rectangle'){ registerPolygon(e.layer); renderPolyList(); save(); }
+});
+map.on('pm:remove',e=>{ if(polyGroup.hasLayer(e.layer)){ polyGroup.removeLayer(e.layer); renderPolyList(); save(); } });
+$('#btnDrawPoly').onclick=()=>map.pm.enableDraw('Polygon');
+$('#btnDrawRect').onclick=()=>map.pm.enableDraw('Rectangle');
+$('#btnClearPolys').onclick=()=>{
+  if(!polyGroup.getLayers().length) return;
+  if(confirm('¿Borrar todas las zonas dibujadas?')){ polyGroup.clearLayers(); renderPolyList(); save(); }
+};
+
+function polyRings(layer){
+  const g=layer.toGeoJSON().geometry;
+  return g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];
+}
+function ringArea(r){ const R=6378137,d=Math.PI/180; let a=0; for(let i=0;i<r.length-1;i++){ const p1=r[i],p2=r[i+1]; a+=(p2[0]-p1[0])*d*(2+Math.sin(p1[1]*d)+Math.sin(p2[1]*d)); } return Math.abs(a*R*R/2); }
+function polyArea(polys){ let a=0; for(const rings of polys){ a+=ringArea(rings[0]); for(let i=1;i<rings.length;i++) a-=ringArea(rings[i]); } return a; }
+function fmtArea(m2){ if(m2<1e4) return `${fmtNum(Math.round(m2))} m²`; if(m2<1e8) return `${fmtNum(m2/1e4)} ha`; return `${fmtNum(m2/1e6)} km²`; }
+function inRing(x,y,r){ let c=false; for(let i=0,j=r.length-1;i<r.length;j=i++){ const xi=r[i][0],yi=r[i][1],xj=r[j][0],yj=r[j][1]; if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) c=!c; } return c; }
+function inPolys(x,y,polys){ for(const rings of polys){ if(inRing(x,y,rings[0])){ let hole=false; for(let i=1;i<rings.length;i++) if(inRing(x,y,rings[i])){hole=true;break;} if(!hole) return true; } } return false; }
+
+function renderPolyList(){
+  const ul=$('#polyList'); ul.innerHTML='';
+  const layers=polyGroup.getLayers();
+  $('#polyEmpty').hidden=layers.length>0;
+  layers.forEach(layer=>{
+    const m=layer._meta;
+    const li=document.createElement('li'); li.className='item';
+    li.innerHTML='<input type="color" aria-label="Color de la zona"><input type="text" aria-label="Nombre de la zona"><div><button class="link" data-a="ver">Ver</button><button class="link del" data-a="del">Borrar</button></div><div class="meta"></div>';
+    const [col,txt]=li.querySelectorAll('input');
+    col.value=m.color; txt.value=m.name;
+    col.oninput=()=>{ m.color=col.value; layer.setStyle({color:m.color,fillColor:m.color}); save(); };
+    txt.oninput=()=>{ m.name=txt.value; save(); };
+    li.querySelector('[data-a=ver]').onclick=()=>map.fitBounds(layer.getBounds(),{padding:[30,30]});
+    li.querySelector('[data-a=del]').onclick=()=>{ polyGroup.removeLayer(layer); renderPolyList(); save(); };
+    layer._countEl=li.querySelector('.meta');
+    ul.appendChild(li);
+  });
+  updateCounts();
+}
+
+function updateCounts(){
+  const vis=pointLayers.filter(l=>l.visible);
+  const total=vis.reduce((s,l)=>s+l.pts.length,0);
+  polyGroup.getLayers().forEach(layer=>{
+    if(!layer._countEl) return;
+    const polys=polyRings(layer);
+    let txt=fmtArea(polyArea(polys));
+    if(total){
+      const b=layer.getBounds(), s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast();
+      let c=0;
+      for(const l of vis) for(const p of l.pts){ if(p.lat<s||p.lat>n||p.lng<w||p.lng>e) continue; if(inPolys(p.lng,p.lat,polys)) c++; }
+      txt+=`; ${c.toLocaleString('es-CL')} puntos dentro (${fmtNum(100*c/total)} %)`;
+    }
+    layer._countEl.textContent=txt;
+  });
+}
+
+// ---------- puntos GPS ----------
+const pointLayers=[]; let ptsSeq=0;
+const settings={ col:'', fixed:'#E4572E', breaks:[], size:4, maxShow:30000 };
+const RAMP=['#1a9850','#91cf60','#d9ef8b','#fee08b','#fc8d59','#d73027'];
+let binCols=[];
+function interp(stops,t){ const s=t*(stops.length-1), i=Math.min(Math.floor(s),stops.length-2), f=s-i; const a=hexRgb(stops[i]), b=hexRgb(stops[i+1]); return '#'+[0,1,2].map(k=>Math.round(a[k]+(b[k]-a[k])*f).toString(16).padStart(2,'0')).join(''); }
+function rampColors(n){ if(n<=1) return [RAMP[RAMP.length-1]]; return Array.from({length:n},(_,i)=>interp(RAMP,i/(n-1))); }
+function setBreaks(arr){ settings.breaks=arr; binCols=rampColors(Math.max(1,arr.length-1)); $('#breaks').value=arr.map(fmtNum).join('; '); }
+function binColor(v){ const b=settings.breaks; if(b.length<2) return settings.fixed; for(let i=0;i<b.length-1;i++){ if(v<b[i+1]) return binCols[i]; } return binCols[binCols.length-1]; }
+function colorFor(p){ if(!settings.col) return settings.fixed; const v=toNum(p.props[settings.col]); return Number.isFinite(v)?binColor(v):'#9AA5A8'; }
+
+function autoBreaks(col){
+  let mn=Infinity,mx=-Infinity;
+  for(const l of pointLayers) for(const p of l.pts){ const v=toNum(p.props[col]); if(Number.isFinite(v)){ if(v<mn)mn=v; if(v>mx)mx=v; } }
+  if(!Number.isFinite(mn)) return [];
+  if(mn===mx) return [mn,mn+1];
+  const raw=(mx-mn)/6, pw=10**Math.floor(Math.log10(raw)), d=raw/pw;
+  const st=(d<=1?1:d<=2?2:d<=2.5?2.5:d<=5?5:10)*pw;
+  const out=[]; let v=Math.floor(mn/st)*st;
+  do{ out.push(+v.toFixed(10)); v+=st; }while(out[out.length-1]<mx && out.length<30);
+  return out;
+}
+
+function detectNumeric(pts){
+  const keys=new Set(); pts.slice(0,200).forEach(p=>Object.keys(p.props).forEach(k=>keys.add(k)));
+  const out=[];
+  keys.forEach(k=>{ let ok=0,tot=0; for(const p of pts.slice(0,500)){ const v=p.props[k]; if(v===''||v==null) continue; tot++; if(Number.isFinite(toNum(v))&&!/^\d{4}-\d{2}-\d{2}/.test(String(v))) ok++; } if(tot&&ok/tot>=0.8) out.push(k); });
+  return out;
+}
+
+function addPointLayer(name,pts){
+  if(!pts.length) throw new Error('no encontré puntos');
+  pointLayers.push({ id:++ptsSeq, name:name.replace(/\.[^.]+$/,''), pts, numeric:detectNumeric(pts), visible:true, shown:[] });
+  refreshColumnOptions(); renderPoints(); renderPointList(); fitToPoints();
+  toast(`${pts.length.toLocaleString('es-CL')} puntos cargados desde ${name}.`);
+}
+
+function refreshColumnOptions(){
+  const sel=$('#colorCol'), cur=sel.value;
+  const cols=[...new Set(pointLayers.flatMap(l=>l.numeric))];
+  sel.innerHTML='<option value="">Color fijo</option>';
+  cols.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+  sel.value=cols.includes(cur)?cur:'';
+  if(sel.value!==settings.col){ settings.col=sel.value; onColChange(); }
+}
+function onColChange(){
+  $('#fixedWrap').hidden=!!settings.col; $('#breaksWrap').hidden=!settings.col;
+  if(settings.col) setBreaks(autoBreaks(settings.col));
+}
+
+function renderPoints(){
+  ptsGroup.clearLayers();
+  const vis=pointLayers.filter(l=>l.visible);
+  const total=vis.reduce((s,l)=>s+l.pts.length,0);
+  const step=Math.max(1,Math.ceil(total/Math.max(1000,settings.maxShow)));
+  let shown=0;
+  for(const l of vis){
+    l.shown = step===1 ? l.pts : l.pts.filter((_,i)=>i%step===0);
+    shown+=l.shown.length;
+    for(const p of l.shown){
+      L.circleMarker([p.lat,p.lng],{ renderer:ptsRenderer, radius:settings.size, color:'#1b1b1b', weight:0.5, opacity:0.6,
+        fillColor:colorFor(p), fillOpacity:0.9, interactive:false, pmIgnore:true }).addTo(ptsGroup);
+    }
+  }
+  $('#thinNote').textContent = step>1 ? `Se dibujan ${shown.toLocaleString('es-CL')} de ${total.toLocaleString('es-CL')} puntos (1 de cada ${step}). Los conteos por zona usan todos los puntos.` : '';
+  renderLegendPrev(); updateCounts();
+}
+
+function renderLegendPrev(){
+  const box=$('#legendPrev'); box.innerHTML='';
+  const b=settings.breaks; if(!settings.col||b.length<2) return;
+  for(let i=0;i<b.length-1;i++){ const s=document.createElement('span'); const dot=document.createElement('i'); dot.style.background=binCols[i]; s.appendChild(dot); s.appendChild(document.createTextNode(`${fmtNum(b[i])} – ${fmtNum(b[i+1])}`)); box.appendChild(s); }
+}
+
+function renderPointList(){
+  const ul=$('#ptsList'); ul.innerHTML='';
+  $('#ptsEmpty').hidden=pointLayers.length>0;
+  pointLayers.forEach(l=>{
+    const li=document.createElement('li'); li.className='item';
+    li.innerHTML='<input type="checkbox" aria-label="Mostrar capa"><input type="text" aria-label="Nombre de la capa"><div><button class="link" data-a="ver">Ver</button><button class="link del" data-a="del">Quitar</button></div><div class="meta"></div>';
+    const [chk,txt]=li.querySelectorAll('input');
+    chk.checked=l.visible; txt.value=l.name;
+    li.querySelector('.meta').textContent=`${l.pts.length.toLocaleString('es-CL')} puntos`+(l.numeric.length?`; columnas numéricas: ${l.numeric.join(', ')}`:'');
+    chk.onchange=()=>{ l.visible=chk.checked; renderPoints(); };
+    txt.oninput=()=>{ l.name=txt.value; };
+    li.querySelector('[data-a=ver]').onclick=()=>fitToPoints([l]);
+    li.querySelector('[data-a=del]').onclick=()=>{ pointLayers.splice(pointLayers.indexOf(l),1); refreshColumnOptions(); renderPoints(); renderPointList(); };
+    ul.appendChild(li);
+  });
+}
+
+function fitToPoints(layers){
+  layers=layers||pointLayers.filter(l=>l.visible);
+  let s=90,n=-90,w=180,e=-180,any=false;
+  for(const l of layers) for(const p of l.pts){ any=true; if(p.lat<s)s=p.lat; if(p.lat>n)n=p.lat; if(p.lng<w)w=p.lng; if(p.lng>e)e=p.lng; }
+  if(any) map.fitBounds([[s,w],[n,e]],{padding:[30,30]});
+}
+
+$('#colorCol').onchange=e=>{ settings.col=e.target.value; onColChange(); renderPoints(); };
+$('#fixedColor').oninput=e=>{ settings.fixed=e.target.value; renderPoints(); };
+$('#breaks').onchange=e=>{
+  const arr=e.target.value.split(/[;\s]+/).map(toNum).filter(Number.isFinite).sort((a,b)=>a-b);
+  if(arr.length<2){ toast('Escribe al menos dos cortes, por ejemplo: 0; 50; 100; 150'); return; }
+  setBreaks(arr); renderPoints();
+};
+$('#btnAutoBreaks').onclick=()=>{ if(settings.col){ setBreaks(autoBreaks(settings.col)); renderPoints(); } };
+$('#ptSize').onchange=e=>{ settings.size=Math.min(15,Math.max(1,toNum(e.target.value)||4)); renderPoints(); };
+$('#maxShow').onchange=e=>{ settings.maxShow=Math.max(1000,toNum(e.target.value)||30000); renderPoints(); };
+$('#btnFitPts').onclick=()=>fitToPoints();
+
+// ---------- lectura de archivos ----------
+function parseCSV(text){
+  const res=Papa.parse(text.replace(/^\uFEFF/,''),{ header:true, skipEmptyLines:true });
+  const keys=(res.meta.fields||[]).filter(Boolean);
+  const find=(exact,loose)=>keys.find(k=>exact.test(k.trim()))||keys.find(k=>loose.test(k.trim()));
+  const latK=find(/^(lat|latitud|latitude|y_lat)$/i,/(^|[_\s.])lat/i);
+  const lonK=find(/^(lon|lng|long|longitud|longitude|x_lon)$/i,/(^|[_\s.])(lon|lng)/i);
+  if(!latK||!lonK) throw new Error('no encontré columnas de latitud y longitud (nómbralas lat y lon)');
+  const pts=[];
+  for(const r of res.data){
+    const lat=toNum(r[latK]), lng=toNum(r[lonK]);
+    if(Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180){
+      const props={...r}; delete props[latK]; delete props[lonK]; pts.push({lat,lng,props});
+    }
+  }
+  if(!pts.length) throw new Error('las columnas de coordenadas no tienen valores en grados decimales');
+  return pts;
+}
+function parseGPX(text){
+  const doc=new DOMParser().parseFromString(text,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('el GPX no es un XML válido');
+  const pts=[];
+  ['trkpt','rtept','wpt'].forEach(tag=>{
+    for(const n of doc.getElementsByTagName(tag)){
+      const lat=parseFloat(n.getAttribute('lat')), lng=parseFloat(n.getAttribute('lon'));
+      if(!Number.isFinite(lat)||!Number.isFinite(lng)) continue;
+      const props={}; const ele=n.getElementsByTagName('ele')[0], t=n.getElementsByTagName('time')[0];
+      if(ele) props.elevacion=parseFloat(ele.textContent);
+      if(t) props.hora=t.textContent;
+      pts.push({lat,lng,props});
+    }
+  });
+  return pts;
+}
+function importGeoJSON(gj,fname){
+  const feats=gj.type==='FeatureCollection'?gj.features:gj.type==='Feature'?[gj]:[{type:'Feature',geometry:gj,properties:{}}];
+  const pts=[]; let nPoly=0;
+  for(const f of feats){
+    const g=f&&f.geometry; if(!g) continue; const props=f.properties||{};
+    if(g.type==='Point') pts.push({lng:g.coordinates[0],lat:g.coordinates[1],props:{...props}});
+    else if(g.type==='MultiPoint'||g.type==='LineString') g.coordinates.forEach(c=>pts.push({lng:c[0],lat:c[1],props:{...props}}));
+    else if(g.type==='MultiLineString') g.coordinates.flat().forEach(c=>pts.push({lng:c[0],lat:c[1],props:{...props}}));
+    else if(g.type==='Polygon'||g.type==='MultiPolygon'){
+      const layer=L.GeoJSON.geometryToLayer({type:'Feature',geometry:g,properties:{}});
+      const name=props.nombre||props.Nombre||props.NOMBRE||props.name||props.NAME||undefined;
+      registerPolygon(layer,name?String(name):undefined, props.color);
+      nPoly++;
+    }
+  }
+  if(nPoly){ renderPolyList(); save(); map.fitBounds(polyGroup.getBounds(),{padding:[30,30]}); toast(`${nPoly} zona(s) importada(s) desde ${fname}.`); }
+  if(pts.length) addPointLayer(fname,pts);
+  if(!nPoly&&!pts.length) throw new Error('no tiene puntos ni polígonos');
+}
+async function handleFile(f){
+  const ext=f.name.split('.').pop().toLowerCase();
+  if(ext==='gpx') return addPointLayer(f.name,parseGPX(await f.text()));
+  if(ext==='csv'||ext==='txt') return addPointLayer(f.name,parseCSV(await f.text()));
+  if(ext==='geojson'||ext==='json') return importGeoJSON(JSON.parse(await f.text()),f.name);
+  if(ext==='zip'){
+    if(typeof shp!=='function') throw new Error('no se cargó el lector de shapefiles');
+    const g=await shp(await f.arrayBuffer());
+    (Array.isArray(g)?g:[g]).forEach(x=>importGeoJSON(x,f.name));
+    return;
+  }
+  throw new Error('formato no reconocido; usa .gpx, .csv, .geojson o un .zip con el shapefile');
+}
+async function handleFiles(files){
+  for(const f of files){ try{ await handleFile(f); }catch(err){ console.error(err); toast(`No pude leer ${f.name}: ${err.message}.`); } }
+}
+$('#btnLoadPts').onclick=()=>$('#filePts').click();
+$('#filePts').onchange=e=>{ handleFiles([...e.target.files]); e.target.value=''; };
+const mainEl=$('#main'), dropEl=$('#drop'); let dragDepth=0;
+mainEl.addEventListener('dragenter',e=>{ e.preventDefault(); dragDepth++; dropEl.classList.add('on'); });
+mainEl.addEventListener('dragover',e=>e.preventDefault());
+mainEl.addEventListener('dragleave',()=>{ if(--dragDepth<=0){ dragDepth=0; dropEl.classList.remove('on'); } });
+mainEl.addEventListener('drop',e=>{ e.preventDefault(); dragDepth=0; dropEl.classList.remove('on'); handleFiles([...e.dataTransfer.files]); });
+
+// ---------- exportar zonas ----------
+const WGS_GEOG='GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+const utmWkt=z=>`PROJCS["WGS_1984_UTM_Zone_${z}S",${WGS_GEOG},PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",10000000.0],PARAMETER["Central_Meridian",${z*6-183}.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]`;
+function utmSouth(lng,lat,zone){
+  const a=6378137,f=1/298.257223563,k0=0.9996,e2=f*(2-f),ep2=e2/(1-e2),d=Math.PI/180;
+  const phi=lat*d, lam=lng*d, lam0=(zone*6-183)*d;
+  const s=Math.sin(phi),c=Math.cos(phi),t=Math.tan(phi);
+  const N=a/Math.sqrt(1-e2*s*s), T=t*t, C=ep2*c*c, A=c*(lam-lam0), e4=e2*e2, e6=e4*e2;
+  const M=a*((1-e2/4-3*e4/64-5*e6/256)*phi-(3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*phi)+(15*e4/256+45*e6/1024)*Math.sin(4*phi)-(35*e6/3072)*Math.sin(6*phi));
+  const x=k0*N*(A+(1-T+C)*A**3/6+(5-18*T+T*T+72*C-58*ep2)*A**5/120)+500000;
+  const y=k0*(M+N*t*(A*A/2+(5-T+9*C+4*C*C)*A**4/24+(61-58*T+T*T+600*C-330*ep2)*A**6/720))+10000000;
+  return [x,y];
+}
+const PROJ={
+  '4326': { wkt:WGS_GEOG, fn:(x,y)=>[x,y] },
+  '32718':{ wkt:utmWkt(18), fn:(x,y)=>utmSouth(x,y,18) },
+  '32719':{ wkt:utmWkt(19), fn:(x,y)=>utmSouth(x,y,19) }
+};
+function orient(ring,outer){
+  const r=ring.slice(); const a=r[0],b=r[r.length-1];
+  if(a[0]!==b[0]||a[1]!==b[1]) r.push([a[0],a[1]]);
+  let s=0; for(let i=0;i<r.length-1;i++) s+=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1];
+  if(outer===(s>0)) r.reverse();   // exterior en sentido horario, huecos antihorario
+  return r;
+}
+function writeShp(feats){
+  const recs=feats.map(f=>{
+    const pts=f.rings.flat(); let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    for(const [x,y] of pts){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+    return { rings:f.rings, pts, box:[x0,y0,x1,y1], len:44+4*f.rings.length+16*pts.length };
+  });
+  const box=[Math.min(...recs.map(r=>r.box[0])),Math.min(...recs.map(r=>r.box[1])),Math.max(...recs.map(r=>r.box[2])),Math.max(...recs.map(r=>r.box[3]))];
+  const shpLen=100+recs.reduce((s,r)=>s+8+r.len,0), shxLen=100+8*recs.length;
+  const shp=new DataView(new ArrayBuffer(shpLen)), shx=new DataView(new ArrayBuffer(shxLen));
+  for(const [dv,len] of [[shp,shpLen],[shx,shxLen]]){
+    dv.setInt32(0,9994,false); dv.setInt32(24,len/2,false); dv.setInt32(28,1000,true); dv.setInt32(32,5,true);
+    box.forEach((v,i)=>dv.setFloat64(36+8*i,v,true));
+  }
+  let off=100;
+  recs.forEach((r,i)=>{
+    shx.setInt32(100+8*i,off/2,false); shx.setInt32(104+8*i,r.len/2,false);
+    shp.setInt32(off,i+1,false); shp.setInt32(off+4,r.len/2,false);
+    const o=off+8; shp.setInt32(o,5,true);
+    r.box.forEach((v,k)=>shp.setFloat64(o+4+8*k,v,true));
+    shp.setInt32(o+36,r.rings.length,true); shp.setInt32(o+40,r.pts.length,true);
+    let idx=0; r.rings.forEach((ring,k)=>{ shp.setInt32(o+44+4*k,idx,true); idx+=ring.length; });
+    let p=o+44+4*r.rings.length;
+    for(const [x,y] of r.pts){ shp.setFloat64(p,x,true); shp.setFloat64(p+8,y,true); p+=16; }
+    off+=8+r.len;
+  });
+  return { shp:shp.buffer, shx:shx.buffer };
+}
+function fitBytes(enc,s,max){ let out=enc.encode(s); while(out.length>max){ s=s.slice(0,-1); out=enc.encode(s); } return out; }
+function writeDbf(feats){
+  const fields=[{name:'ID',type:'N',len:10},{name:'NOMBRE',type:'C',len:80}];
+  const hdrLen=32+32*fields.length+1, recLen=1+fields.reduce((s,f)=>s+f.len,0);
+  const buf=new Uint8Array(hdrLen+recLen*feats.length+1), dv=new DataView(buf.buffer), d=new Date();
+  buf[0]=3; buf[1]=d.getFullYear()-1900; buf[2]=d.getMonth()+1; buf[3]=d.getDate();
+  dv.setInt32(4,feats.length,true); dv.setInt16(8,hdrLen,true); dv.setInt16(10,recLen,true);
+  fields.forEach((f,i)=>{ const o=32+32*i; for(let k=0;k<f.name.length;k++) buf[o+k]=f.name.charCodeAt(k); buf[o+11]=f.type.charCodeAt(0); buf[o+16]=f.len; });
+  buf[hdrLen-1]=0x0D;
+  const enc=new TextEncoder();
+  feats.forEach((f,i)=>{
+    let o=hdrLen+i*recLen; buf[o++]=0x20;
+    const id=String(f.id).padStart(10,' ').slice(-10); for(const ch of id) buf[o++]=ch.charCodeAt(0);
+    const bytes=fitBytes(enc,f.name||'',80); buf.set(bytes,o); for(let k=bytes.length;k<80;k++) buf[o+k]=0x20;
+  });
+  buf[buf.length-1]=0x1A;
+  return buf.buffer;
+}
+async function exportShapefile(){
+  const layers=polyGroup.getLayers();
+  if(!layers.length){ toast('Dibuja al menos una zona antes de descargar.'); return; }
+  const epsg=$('#crs').value, base=slug($('#shpName').value)||'zonas', P=PROJ[epsg];
+  const feats=layers.map((l,i)=>({ id:i+1, name:l._meta.name,
+    rings:polyRings(l).flatMap(poly=>poly.map((ring,ri)=>orient(ring.map(c=>P.fn(c[0],c[1])),ri===0))) }));
+  const {shp:shpBuf,shx}=writeShp(feats);
+  const zip=new JSZip();
+  zip.file(base+'.shp',shpBuf); zip.file(base+'.shx',shx); zip.file(base+'.dbf',writeDbf(feats));
+  zip.file(base+'.prj',P.wkt); zip.file(base+'.cpg','UTF-8');
+  download(await zip.generateAsync({type:'blob'}),base+'.zip');
+  toast(`Shapefile descargado: ${base}.zip (EPSG:${epsg}).`);
+}
+function exportGeoJSON(){
+  const layers=polyGroup.getLayers();
+  if(!layers.length){ toast('Dibuja al menos una zona antes de descargar.'); return; }
+  const fc={ type:'FeatureCollection', features:layers.map((l,i)=>{ const f=l.toGeoJSON(); f.properties={ id:i+1, nombre:l._meta.name }; return f; }) };
+  const base=slug($('#shpName').value)||'zonas';
+  download(new Blob([JSON.stringify(fc)],{type:'application/geo+json'}),base+'.geojson');
+}
+$('#btnShp').onclick=exportShapefile;
+$('#btnGeojson').onclick=exportGeoJSON;
+
+// ---------- figura PNG ----------
+function loadImg(src){ return new Promise(res=>{ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src; }); }
+function box(ctx,x,y,w,h,r){ ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h); }
+
+function drawScale(ctx,s,H,W,zf){
+  const lat=map.getCenter().lat;
+  const mpp=40075016.686*Math.cos(lat*Math.PI/180)/(256*2**zf);
+  const target=W*0.2*mpp, p=10**Math.floor(Math.log10(target)), d=target/p;
+  const len=(d>=5?5:d>=2?2:1)*p, px=len/mpp;
+  const label=len>=1000?`${fmtNum(len/1000)} km`:`${fmtNum(len)} m`;
+  const x=18*s, y=H-20*s, h=6*s;
+  ctx.font=`500 ${12*s}px Barlow, Arial, sans-serif`;
+  const lw=ctx.measureText(label).width;
+  ctx.fillStyle='rgba(255,255,255,.88)'; box(ctx,x-8*s,y-24*s,px+lw/2+20*s,h+32*s,4*s); ctx.fill();
+  for(let i=0;i<4;i++){ ctx.fillStyle=i%2?'#fff':INK; ctx.fillRect(x+i*px/4,y,px/4,h); }
+  ctx.strokeStyle=INK; ctx.lineWidth=1*s; ctx.strokeRect(x,y,px,h);
+  ctx.fillStyle=INK; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText('0',x,y-5*s); ctx.fillText(label,x+px,y-5*s); ctx.textAlign='left';
+}
+function drawNorth(ctx,s,W){
+  const cx=W-34*s, cy=38*s;
+  ctx.fillStyle='rgba(255,255,255,.88)'; ctx.beginPath(); ctx.arc(cx,cy,26*s,0,2*Math.PI); ctx.fill();
+  const top=cy-5*s, bot=cy+19*s, notch=cy+12*s, half=8*s;
+  ctx.beginPath(); ctx.moveTo(cx,top); ctx.lineTo(cx+half,bot); ctx.lineTo(cx,notch); ctx.closePath(); ctx.fillStyle=INK; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx,top); ctx.lineTo(cx-half,bot); ctx.lineTo(cx,notch); ctx.closePath(); ctx.fillStyle='#fff'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx,top); ctx.lineTo(cx+half,bot); ctx.lineTo(cx,notch); ctx.lineTo(cx-half,bot); ctx.closePath(); ctx.strokeStyle=INK; ctx.lineWidth=1*s; ctx.stroke();
+  ctx.fillStyle=INK; ctx.font=`600 ${13*s}px Barlow, Arial, sans-serif`; ctx.textAlign='center'; ctx.fillText('N',cx,cy-9*s); ctx.textAlign='left';
+}
+function drawLegend(ctx,s,W,H){
+  const rows=[];
+  polyGroup.getLayers().forEach(l=>rows.push({kind:'poly',color:l._meta.color,label:l._meta.name}));
+  const vis=pointLayers.filter(l=>l.visible);
+  if(vis.length){
+    if(settings.col&&settings.breaks.length>=2){
+      rows.push({kind:'head',label:$('#legTitle').value.trim()||settings.col});
+      const b=settings.breaks; for(let i=0;i<b.length-1;i++) rows.push({kind:'pt',color:binCols[i],label:`${fmtNum(b[i])} – ${fmtNum(b[i+1])}`});
+    } else vis.forEach(l=>rows.push({kind:'pt',color:settings.fixed,label:l.name}));
+  }
+  if(!rows.length) return;
+  const pad=10*s, rh=20*s, sw=14*s;
+  let maxW=0;
+  rows.forEach(r=>{ ctx.font=r.kind==='head'?`600 ${13*s}px Barlow, Arial, sans-serif`:`400 ${13*s}px Barlow, Arial, sans-serif`; maxW=Math.max(maxW,ctx.measureText(r.label).width+(r.kind==='head'?0:sw+8*s)); });
+  const bw=maxW+2*pad, bh=rows.length*rh+2*pad-4*s, x=W-bw-12*s, y=H-bh-24*s;
+  ctx.fillStyle='rgba(255,255,255,.92)'; box(ctx,x,y,bw,bh,4*s); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=1*s; ctx.stroke();
+  ctx.textBaseline='middle';
+  rows.forEach((r,i)=>{
+    const cy=y+pad+i*rh+rh/2-2*s;
+    if(r.kind==='head'){ ctx.font=`600 ${13*s}px Barlow, Arial, sans-serif`; ctx.fillStyle=INK; ctx.fillText(r.label,x+pad,cy); return; }
+    if(r.kind==='poly'){ ctx.fillStyle=rgba(r.color,.25); ctx.fillRect(x+pad,cy-sw/2+1*s,sw,sw-2*s); ctx.strokeStyle=r.color; ctx.lineWidth=2*s; ctx.strokeRect(x+pad,cy-sw/2+1*s,sw,sw-2*s); }
+    else { ctx.beginPath(); ctx.arc(x+pad+sw/2,cy,5*s,0,2*Math.PI); ctx.fillStyle=r.color; ctx.fill(); ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=0.7*s; ctx.stroke(); }
+    ctx.font=`400 ${13*s}px Barlow, Arial, sans-serif`; ctx.fillStyle=INK; ctx.fillText(r.label,x+pad+sw+8*s,cy);
+  });
+  ctx.textBaseline='alphabetic';
+}
+function drawAttribution(ctx,s,W,H){
+  const t=BASEMAPS[currentBase].attr;
+  ctx.font=`400 ${10*s}px Barlow, Arial, sans-serif`;
+  const w=ctx.measureText(t).width;
+  ctx.fillStyle='rgba(255,255,255,.8)'; ctx.fillRect(W-w-10*s,H-16*s,w+10*s,16*s);
+  ctx.fillStyle='#333'; ctx.textBaseline='middle'; ctx.fillText(t,W-w-5*s,H-8*s); ctx.textBaseline='alphabetic';
+}
+
+async function exportFigure(){
+  const btn=$('#btnPng'); btn.disabled=true; const oldTxt=btn.textContent; btn.textContent='Generando…';
+  try{
+    if(document.fonts&&document.fonts.ready) await document.fonts.ready;
+    const s=+$('#figScale').value, size=map.getSize();
+    const W=Math.round(size.x*s), Hm=Math.round(size.y*s);
+    const title=$('#figTitle').value.trim(), sub=$('#figSub').value.trim();
+    const Hh=(title||sub)?Math.round((title&&sub?74:52)*s):0;
+    const cv=document.createElement('canvas'); cv.width=W; cv.height=Hm+Hh;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+    if(title){ ctx.fillStyle=INK; ctx.font=`600 ${22*s}px Barlow, Arial, sans-serif`; ctx.fillText(title,18*s,34*s); }
+    if(sub){ ctx.fillStyle='#4A5A61'; ctx.font=`400 ${14*s}px Barlow, Arial, sans-serif`; ctx.fillText(sub,18*s,title?58*s:32*s); }
+
+    const z=map.getZoom(), zf=z+Math.log2(s), bm=BASEMAPS[currentBase];
+    const tz=Math.max(0,Math.min(Math.round(zf),bm.native)), k=2**(zf-tz);
+    const nw=map.containerPointToLatLng([0,0]), o=map.project(nw,zf), ot=map.project(nw,tz);
+    const x0=Math.floor(ot.x/256), y0=Math.floor(ot.y/256), x1=Math.floor((ot.x+W/k)/256), y1=Math.floor((ot.y+Hm/k)/256);
+    if((x1-x0+1)*(y1-y0+1)>400) throw new Error('el encuadre necesita demasiadas teselas; acerca el mapa o baja la resolución');
+    const n=2**tz, jobs=[];
+    for(let tx=x0;tx<=x1;tx++) for(let ty=y0;ty<=y1;ty++){
+      if(ty<0||ty>=n) continue;
+      const wx=((tx%n)+n)%n;
+      jobs.push(loadImg(bm.url.replace('{z}',tz).replace('{x}',wx).replace('{y}',ty)).then(im=>({im,tx,ty})));
+    }
+    const tiles=await Promise.all(jobs);
+
+    ctx.save(); ctx.translate(0,Hh); ctx.beginPath(); ctx.rect(0,0,W,Hm); ctx.clip();
+    let failed=0; const ts=256*k;
+    for(const t of tiles){ if(!t.im){failed++;continue;} ctx.drawImage(t.im,Math.floor((t.tx*256-ot.x)*k),Math.floor((t.ty*256-ot.y)*k),Math.ceil(ts)+1,Math.ceil(ts)+1); }
+
+    const toPx=(lng,lat)=>{ const p=map.project([lat,lng],zf); return [p.x-o.x,p.y-o.y]; };
+    const paths=polyGroup.getLayers().map(l=>{
+      const path=new Path2D();
+      polyRings(l).forEach(poly=>poly.forEach(ring=>{ ring.forEach((c,i)=>{ const [x,y]=toPx(c[0],c[1]); i?path.lineTo(x,y):path.moveTo(x,y); }); path.closePath(); }));
+      return {path,color:l._meta.color};
+    });
+    paths.forEach(p=>{ ctx.fillStyle=rgba(p.color,0.18); ctx.fill(p.path,'evenodd'); });
+
+    const r=settings.size*s;
+    ctx.lineWidth=0.5*s; ctx.strokeStyle='rgba(27,27,27,.6)';
+    for(const l of pointLayers.filter(l=>l.visible)) for(const p of l.shown){
+      const [x,y]=toPx(p.lng,p.lat);
+      if(x<-r||y<-r||x>W+r||y>Hm+r) continue;
+      ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fillStyle=colorFor(p); ctx.fill(); ctx.stroke();
+    }
+    paths.forEach(p=>{ ctx.strokeStyle=p.color; ctx.lineWidth=2.5*s; ctx.lineJoin='round'; ctx.stroke(p.path); });
+
+    if($('#optScale').checked) drawScale(ctx,s,Hm,W,zf);
+    if($('#optNorth').checked) drawNorth(ctx,s,W);
+    if($('#optLegend').checked) drawLegend(ctx,s,W,Hm);
+    drawAttribution(ctx,s,W,Hm);
+    ctx.restore();
+    if(Hh){ ctx.fillStyle='#C8D3CF'; ctx.fillRect(0,Hh-1*s,W,1*s); }
+
+    const blob=await new Promise(res=>cv.toBlob(res,'image/png'));
+    if(!blob) throw new Error('el navegador no pudo generar la imagen');
+    download(blob,(slug(title)||'mapa')+'.png');
+    toast(failed?`Figura descargada, pero ${failed} tesela(s) del mapa base no cargaron. Prueba otro mapa base.`:'Figura descargada.');
+  }catch(err){ console.error(err); toast(`No pude generar la figura: ${err.message}.`); }
+  finally{ btn.disabled=false; btn.textContent=oldTxt; }
+}
+$('#btnPng').onclick=exportFigure;
+
+// ---------- guardado local ----------
+function save(){
+  if(!ready) return;
+  try{
+    localStorage.setItem(STORE_KEY,JSON.stringify({
+      base:currentBase, view:{c:map.getCenter(),z:map.getZoom()},
+      polys:polyGroup.getLayers().map(l=>({name:l._meta.name,color:l._meta.color,geometry:l.toGeoJSON().geometry})),
+      fig:{title:$('#figTitle').value, sub:$('#figSub').value, leg:$('#legTitle').value}
+    }));
+  }catch(e){}
+}
+map.on('moveend',save);
+['#figTitle','#figSub','#legTitle'].forEach(id=>$(id).addEventListener('input',save));
+
+(function init(){
+  let d=null; try{ d=JSON.parse(localStorage.getItem(STORE_KEY)||'null'); }catch(e){}
+  if(d&&d.view) map.setView(d.view.c,d.view.z); else map.setView([-37.8,-72.6],6);
+  setBasemap(d&&d.base||'osm');
+  if(d&&Array.isArray(d.polys)) d.polys.forEach(p=>{ try{ registerPolygon(L.GeoJSON.geometryToLayer({type:'Feature',geometry:p.geometry,properties:{}}),p.name,p.color); }catch(e){} });
+  if(d&&d.fig){ $('#figTitle').value=d.fig.title||''; $('#figSub').value=d.fig.sub||''; $('#legTitle').value=d.fig.leg||''; }
+  renderPolyList(); renderPointList();
+  ready=true;
+})();
+</script>
+</body>
+</html>
